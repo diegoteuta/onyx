@@ -12,6 +12,7 @@ from onyx.discovery import discover
 from onyx.fetch import PoliteFetcher
 from onyx.gold import build
 from onyx.layout import Corpus
+from onyx.models import LayerResult
 from onyx.progress import Progress
 from onyx.silver import process, readable_records
 
@@ -26,8 +27,8 @@ class IngestReport:
     discovered: int
     stored: int
     skipped: int
-    pages: int
-    documents: int
+    silver: LayerResult
+    gold: LayerResult
     tokens: int
 
 
@@ -63,25 +64,64 @@ def ingest(
     bronze_bar.close()
 
     silver_bar = Progress(f"{profile.name}:silver", len(readable_records(corpus)), enabled=progress)
-    pages = process(profile, corpus, on_step=silver_bar.advance)
+    silver = process(profile, corpus, on_step=silver_bar.advance)
     silver_bar.close()
 
     pending_gold = len(list(corpus.processed_dir.glob("*.json")))
     gold_bar = Progress(f"{profile.name}:gold", pending_gold, enabled=progress)
-    documents = build(profile, corpus, on_step=gold_bar.advance)
+    gold = build(profile, corpus, on_step=gold_bar.advance)
     gold_bar.close()
 
     stored = sum(1 for record in records if record.status == 200 and not record.note)
     skipped = len(records) - stored
-    tokens = sum(document.tokens for document in documents)
     return IngestReport(
         site=profile.name,
         discovered=len(urls),
         stored=stored,
         skipped=skipped,
-        pages=len(pages),
-        documents=len(documents),
-        tokens=tokens,
+        silver=silver,
+        gold=gold,
+        tokens=stats(corpus).tokens,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RebuildReport:
+    """Resultado de recalcular Silver y Gold sin volver a descargar."""
+
+    site: str
+    silver: LayerResult
+    gold: LayerResult
+    tokens: int
+
+
+def rebuild(
+    profile: SiteProfile,
+    corpus: Corpus,
+    *,
+    progress: bool = True,
+) -> RebuildReport:
+    """Recalcula Silver y Gold desde el Bronze ya capturado, sin tocar la red.
+
+    Sirve cuando cambian los selectores del perfil: el HTML crudo no cambia,
+    pero la extraccion si, y la huella de reglas invalida el Silver anterior.
+    """
+    corpus.ensure()
+
+    silver_bar = Progress(f"{profile.name}:silver", len(readable_records(corpus)), enabled=progress)
+    silver = process(profile, corpus, on_step=silver_bar.advance)
+    silver_bar.close()
+
+    pending_gold = len(list(corpus.processed_dir.glob("*.json")))
+    gold_bar = Progress(f"{profile.name}:gold", pending_gold, enabled=progress)
+    gold = build(profile, corpus, on_step=gold_bar.advance)
+    gold_bar.close()
+
+    return RebuildReport(
+        site=profile.name,
+        silver=silver,
+        gold=gold,
+        tokens=stats(corpus).tokens,
     )
 
 

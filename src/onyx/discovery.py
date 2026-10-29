@@ -88,6 +88,8 @@ def _expand_sitemaps(profile: SiteProfile, fetch: Fetcher, max_depth: int = 2) -
             if sitemap_url in visited:
                 continue
             visited.add(sitemap_url)
+            if any(skip in sitemap_url for skip in profile.sitemap_exclude):
+                continue
             body = fetch(sitemap_url)
             if not body:
                 continue

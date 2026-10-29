@@ -32,6 +32,16 @@ class CaptureRecord:
 
 
 @dataclass(frozen=True, slots=True)
+class LayerResult:
+    """Qué hizo una capa: escribió, salteó por no cambiar, descartó o removió."""
+
+    written: int
+    skipped: int
+    total: int
+    removed: int = 0
+
+
+@dataclass(frozen=True, slots=True)
 class Document:
     """Un documento de la capa Gold, listo para alimentar un RAG."""
 

@@ -20,7 +20,7 @@ def test_load_profile_lee_el_perfil_de_hv() -> None:
     assert profile.host == "www.hv.com.co"
     assert profile.max_pages > 0
     assert profile.sitemaps == ("/sitemap_index.xml",)
-    assert ".ajax-content-wrap" in profile.extract.content_selectors
+    assert "#ajax-content-wrap" in profile.extract.content_selectors
 
 
 def test_absolute_convierte_rutas_relativas() -> None:

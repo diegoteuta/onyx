@@ -127,7 +127,10 @@ uv run onyx ingest --site hv
 # 3. Refrescar sin reescribir lo que no cambió
 uv run onyx ingest --site hv --refresh
 
-# 4. Estado del corpus
+# 4. Recalcular Silver y Gold sin volver a descargar (tras cambiar selectores)
+uv run onyx rebuild --site hv
+
+# 5. Estado del corpus
 uv run onyx report --site hv
 ```
 
@@ -146,8 +149,14 @@ make report SITE=hv
 Salida de ejemplo:
 
 ```text
-[hv] descubiertas=3 guardadas=3 omitidas=0 silver=3 gold=3 tokens=536
+[hv] descubiertas=442 guardadas=2 omitidas=0 silver=2/442 gold=2/442 tokens=205248
 ```
+
+`silver` y `gold` se leen como **escritas / total**: en una corrida sin cambios verás
+`silver=0/442`, porque las capas se saltean lo que no cambió (el crudo por `sha256`,
+el Markdown por `content_hash` + versión del renderer). `descartadas` cuenta las páginas
+que quedaron sin contenido útil: se les borra el Silver y el Gold para que el corpus no
+arrastre documentos obsoletos.
 
 ### Un documento Gold
 
@@ -179,6 +188,7 @@ lang = "es"
 rate_limit_seconds = 1.0
 max_pages = 200
 sitemaps = ["/sitemap.xml"]
+sitemap_exclude = ["attachment-sitemap", "category-sitemap"]
 exclude_patterns = ["/wp-content/", "/feed/"]
 
 [extract]
@@ -190,6 +200,11 @@ drop_selectors = ["nav", "header", "footer", "script", "style"]
 uv run onyx discover --site acme   # valida el perfil sin descargar
 uv run onyx ingest --site acme
 ```
+
+> 💡 Si el sitio publica un `sitemap_index.xml` con sitemaps de adjuntos, categorías o
+> taxonomías, listalos en `sitemap_exclude`: son ruido y consumen turnos de rate limit.
+> Cuidado con excluir sitemaps que sí traen productos (en HV, `portfolio-sitemap` tenía
+> las 40 fichas de `/productos/`).
 
 ## ⚖️ Ética, límites y legalidad
 

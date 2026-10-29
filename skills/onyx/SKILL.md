@@ -85,6 +85,16 @@ crudo. El manifest queda igual con una entrada nueva (`status: 304` o `note: sin
 uv run onyx report --site <perfil>
 ```
 
+### 5. Recalcular sin volver a descargar
+
+```bash
+uv run onyx rebuild --site <perfil>
+```
+
+Uso típico: cambiaste `content_selectors` o `drop_selectors` y no querés esperar otra
+captura completa. Recalcula Silver y Gold desde el Bronze y descarta las páginas que
+quedaron sin contenido.
+
 ## Agregar una empresa nueva
 
 Crear `sites/<nombre>.toml`. Es la **única** pieza específica del sitio; nada se hardcodea
@@ -97,6 +107,7 @@ lang = "es"
 rate_limit_seconds = 1.0
 max_pages = 200
 sitemaps = ["/sitemap.xml"]
+sitemap_exclude = ["attachment-sitemap", "category-sitemap"]
 exclude_patterns = ["/wp-content/", "/feed/", "/tag/"]
 
 [extract]
@@ -120,6 +131,8 @@ Cómo elegir los selectores:
 | Texto con menús y pies de página | Faltan selectores en `drop_selectors` | Inspeccionar el DOM y agregar los contenedores repetidos |
 | Todo el texto en un solo bloque | El sitio usa un page builder (WPBakery, Elementor) con divs anidados | Elegir un contenedor más interno en `content_selectors` |
 | `silver=0` con `guardadas>0` | Contenido renderizado por JavaScript | Fuera de alcance: se necesita navegador headless |
+| Faltan fichas de producto | `max_pages` cortó la lista antes de llegar a su sitemap | Subir `max_pages` y revisar `sitemap_exclude`: un sitemap excluido puede tener el catálogo |
+| Sigue apareciendo el menú o el footer | El selector de `drop_selectors` apunta a una clase y el bloque es un **id** (o al revés) | Verificar en el DOM: `soup.select("#footer-outer")` vs `soup.select(".footer-outer")`. Un drop equivocado no falla, no hace nada |
 | `omitido: robots.txt` | `Disallow` en `robots.txt` | Respetarlo. No usar `--ignore-robots` contra terceros |
 | `tokens` estimados | `tiktoken` no pudo descargar el encoding | Normal en modo offline; el fallback estima por caracteres |
 

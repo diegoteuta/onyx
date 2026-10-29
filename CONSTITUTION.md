@@ -215,12 +215,21 @@ Estas reglas son **duras**: no son recomendaciones.
 | 2026-10-28 | Imágenes descartadas en Gold | Aportan ruido y tokens; siguen disponibles en Bronze |
 | 2026-10-28 | Makefile portable (Python en vez de `grep`/`awk`/`rm`/`find`) | El template original fallaba en Windows (`make help` → error 255) |
 | 2026-10-29 | Progreso por página en **stderr**, con `--quiet` para desactivarlo | Una corrida de 400 páginas tardaba 10 min sin señal de avance; stdout queda limpio para CI |
+| 2026-10-29 | Reprocesamiento incremental: Silver se saltea si cambió el `sha256` del crudo; Gold si coincide el `content_hash` | Correr el pipeline dos veces reescribía 390 archivos sin motivo (77 s → 2 s de trabajo real) |
+| 2026-10-29 | `sitemap_exclude` en el perfil para no descargar sitemaps inútiles | `attachment-sitemap` traía 1000 imágenes y consumía turno de rate limit |
+| 2026-10-29 | `max_pages` de HV subido a 500 | Con 400, los 333 posts + 70 páginas llenaban el tope y **las 40 páginas de `/productos/` quedaban afuera** |
+| 2026-10-29 | Huella de reglas (`rules_fingerprint`) en el JSON de Silver | Cambiar `drop_selectors` no altera el crudo; sin huella, el skip por `sha256` impedía re-extraer |
+| 2026-10-29 | `renderer` versionado en el frontmatter de Gold | Cambiar el renderizado Markdown no cambia `content_hash`; sin versión, Gold quedaba viejo |
+| 2026-10-29 | Silver borra Silver y Gold cuando la página queda sin contenido | Dejar archivos viejos hacía que el corpus mintiera (53 páginas con footer heredado) |
+| 2026-10-29 | Comando `onyx rebuild` (Silver + Gold sin red) | Re-extraer tras cambiar selectores no debe costar 11 minutos de descarga |
+| 2026-10-29 | Perfil HV: selectores por **id** (`#footer-outer`, `#page-header-wrap`) | El tema Salient usa ids en esos bloques; los drops por clase no fallaban, simplemente no hacían nada |
 
 ## 10. Notas y tareas pendientes
 
 - [x] Implementar las tres capas y la CLI.
 - [x] Barra de progreso por capa (stderr) con `--quiet`.
-- [x] Perfil de sitio para `hv.com.co`.
+- [x] Reprocesamiento incremental en Silver y Gold.
+- [x] Perfil de sitio para `hv.com.co` (442 URLs: páginas, noticias y 40 fichas de producto).
 - [ ] Agregar pruebas de `bronze.capture` con `httpx.MockTransport` (sin red).
 - [ ] Publicar la skill en `skills.sh` y validar con `npx skills add`.
 - [ ] Chunking + embeddings en el módulo de RAG (fuera del alcance de Onyx).

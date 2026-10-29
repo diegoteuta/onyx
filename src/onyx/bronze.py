@@ -61,7 +61,12 @@ def _capture_one(
             note="omitido: no es HTML",
         )
 
-    unchanged = prior is not None and prior.sha256 == digest
+    unchanged = (
+        prior is not None
+        and prior.sha256 == digest
+        and bool(prior.raw_path)
+        and (corpus.raw_dir / prior.raw_path).is_file()
+    )
     raw_path = prior.raw_path if unchanged and prior else corpus.raw_file(url).name
 
     if not unchanged:
@@ -92,11 +97,13 @@ def capture(
 ) -> list[CaptureRecord]:
     """Descarga `urls` y guarda el HTML tal cual en data/raw.
 
-    Con `refresh=True` reutiliza ETag/Last-Modified y evita reescribir el crudo
-    cuando el hash no cambia (captura incremental).
+    Siempre compara contra el manifest: si el cuerpo descargado tiene el mismo
+    `sha256` que la captura anterior, no reescribe el crudo. Con `refresh=True`
+    ademas manda `If-None-Match` / `If-Modified-Since`, para que el servidor
+    pueda responder 304 y ahorrarse la transferencia.
     """
     corpus.ensure()
-    previous = corpus.latest_by_url() if refresh else {}
+    previous = corpus.latest_by_url()
     records: list[CaptureRecord] = []
 
     with PoliteFetcher(profile, ignore_robots=ignore_robots) as fetcher:

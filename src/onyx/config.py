@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -40,6 +42,15 @@ class ExtractRules:
     )
 
 
+def rules_fingerprint(rules: ExtractRules) -> str:
+    """Huella corta de las reglas de extraccion: cambia si cambian los selectores."""
+    payload = json.dumps(
+        {"content": list(rules.content_selectors), "drop": list(rules.drop_selectors)},
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
 @dataclass(frozen=True, slots=True)
 class SiteProfile:
     """Describe como ingerir un sitio: descubrimiento, cortesia y extraccion."""
@@ -50,6 +61,7 @@ class SiteProfile:
     rate_limit_seconds: float = 1.0
     max_pages: int = 200
     sitemaps: tuple[str, ...] = ()
+    sitemap_exclude: tuple[str, ...] = ()
     include_patterns: tuple[str, ...] = ()
     exclude_patterns: tuple[str, ...] = ()
     user_agent: str = DEFAULT_USER_AGENT
@@ -108,6 +120,7 @@ def load_profile(path: Path) -> SiteProfile:
         rate_limit_seconds=float(rate_limit) if isinstance(rate_limit, int | float) else 1.0,
         max_pages=int(max_pages) if isinstance(max_pages, int) else 200,
         sitemaps=_str_tuple(raw, "sitemaps"),
+        sitemap_exclude=_str_tuple(raw, "sitemap_exclude"),
         include_patterns=_str_tuple(raw, "include_patterns"),
         exclude_patterns=_str_tuple(raw, "exclude_patterns"),
         user_agent=str(raw.get("user_agent", DEFAULT_USER_AGENT)),

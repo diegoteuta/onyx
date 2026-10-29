@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import yaml
 
-from onyx.gold import count_tokens, html_to_markdown, render_document
+from onyx.gold import _strip_redundant_title, count_tokens, html_to_markdown, render_document
 from onyx.models import Document
 
 
@@ -84,3 +84,36 @@ def test_count_tokens_es_positivo_y_monotonico() -> None:
     # Assert
     assert tokens_corto > 0
     assert tokens_largo > tokens_corto
+
+
+def test_strip_redundant_title_quita_el_h1_repetido() -> None:
+    # Arrange
+    body = "# Productos\n\nTexto del cuerpo."
+
+    # Act
+    result = _strip_redundant_title(body, "Productos")
+
+    # Assert
+    assert result == "Texto del cuerpo."
+
+
+def test_strip_redundant_title_quita_repetidos_en_medio() -> None:
+    # Arrange
+    body = "### Linea Clasica\n\n# Productos\n\nTexto del cuerpo."
+
+    # Act
+    result = _strip_redundant_title(body, "Productos")
+
+    # Assert
+    assert result == "### Linea Clasica\n\nTexto del cuerpo."
+
+
+def test_strip_redundant_title_respeta_un_titulo_distinto() -> None:
+    # Arrange
+    body = "# Otra cosa\n\nTexto del cuerpo."
+
+    # Act
+    result = _strip_redundant_title(body, "Productos")
+
+    # Assert
+    assert result == body

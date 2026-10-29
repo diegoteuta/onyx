@@ -9,7 +9,7 @@ from pathlib import Path
 
 from onyx.config import ConfigError, SiteProfile, find_profile, load_profile
 from onyx.layout import Corpus
-from onyx.pipeline import ingest, list_urls, stats
+from onyx.pipeline import ingest, list_urls, rebuild, stats
 
 DEFAULT_DATA_DIR = Path("data")
 DEFAULT_PROFILE_DIR = Path("sites")
@@ -48,6 +48,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
     report = subparsers.add_parser("report", help="estado del corpus")
     report.add_argument("--site", required=True)
+
+    rebuild_cmd = subparsers.add_parser(
+        "rebuild", help="recalcula Silver y Gold desde el Bronze ya capturado (sin red)"
+    )
+    rebuild_cmd.add_argument("--site", required=True)
+    rebuild_cmd.add_argument("--quiet", action="store_true", help="sin barra de progreso")
 
     subparsers.add_parser("profiles", help="lista los perfiles de sitio disponibles")
     return parser
@@ -91,8 +97,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             print(
                 f"[{result.site}] descubiertas={result.discovered} guardadas={result.stored} "
-                f"omitidas={result.skipped} silver={result.pages} gold={result.documents} "
-                f"tokens={result.tokens}"
+                f"omitidas={result.skipped} "
+                f"silver={result.silver.written}/{result.silver.total} "
+                f"gold={result.gold.written}/{result.gold.total} "
+                f"descartadas={result.silver.removed} tokens={result.tokens}"
+            )
+            return 0
+
+        if args.command == "rebuild":
+            rebuilt = rebuild(profile, _corpus(args), progress=not args.quiet)
+            print(
+                f"[{rebuilt.site}] rebuild "
+                f"silver={rebuilt.silver.written}/{rebuilt.silver.total} "
+                f"gold={rebuilt.gold.written}/{rebuilt.gold.total} "
+                f"descartadas={rebuilt.silver.removed} tokens={rebuilt.tokens}"
             )
             return 0
 

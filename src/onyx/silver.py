@@ -7,12 +7,13 @@ import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from bs4 import BeautifulSoup, Tag
 
-from onyx.config import ExtractRules, SiteProfile
+from onyx.config import ExtractRules, SiteProfile, rules_fingerprint
 from onyx.layout import Corpus, section_of, write_text
-from onyx.models import CaptureRecord
+from onyx.models import CaptureRecord, LayerResult
 from onyx.util import short_path, utc_now
 
 MIN_CONTENT_CHARS = 200
@@ -114,17 +115,43 @@ def readable_records(corpus: Corpus) -> list[CaptureRecord]:
     ]
 
 
-def _process_one(profile: SiteProfile, corpus: Corpus, record: CaptureRecord) -> CleanPage | None:
-    """Limpia una captura y escribe Silver. None si no hay contenido util."""
+def _read_processed(path: Path) -> dict[str, object] | None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _process_one(profile: SiteProfile, corpus: Corpus, record: CaptureRecord) -> str:
+    """Bronze -> Silver de una pagina.
+
+    Devuelve "written" (se reescribio), "skipped" (no cambio) o "removed"
+    (ya no tiene contenido util: se borra su Silver y su Gold para no dejar
+    documentos obsoletos mintiendo sobre el corpus).
+    """
     raw_file = corpus.raw_dir / record.raw_path
     if not raw_file.is_file():
-        return None
+        return "skipped"
+
+    processed_file = corpus.processed_file(record.url)
+    existing = _read_processed(processed_file)
+    fingerprint = rules_fingerprint(profile.extract)
+    if (
+        existing is not None
+        and existing.get("source_hash") == record.sha256
+        and existing.get("rules") == fingerprint
+        and existing.get("content_hash")
+        and processed_file.with_suffix(".html").is_file()
+    ):
+        return "skipped"
 
     page = clean_page(
         raw_file.read_text(encoding="utf-8", errors="replace"), record.url, profile.extract
     )
     if page.word_count < MIN_WORDS:
-        return None
+        _drop_outputs(corpus, record.url)
+        return "removed"
 
     payload = {
         "url": page.url,
@@ -132,13 +159,22 @@ def _process_one(profile: SiteProfile, corpus: Corpus, record: CaptureRecord) ->
         "lang": profile.lang,
         "section": section_of(record.url),
         "captured_at": utc_now(),
+        "source_hash": record.sha256,
+        "rules": fingerprint,
         "content_hash": page.content_hash,
         "word_count": page.word_count,
         "text": page.text,
     }
-    write_text(corpus.processed_file(page.url), json.dumps(payload, ensure_ascii=False, indent=2))
-    write_text(corpus.processed_file(page.url).with_suffix(".html"), page.html)
-    return page
+    write_text(processed_file, json.dumps(payload, ensure_ascii=False, indent=2))
+    write_text(processed_file.with_suffix(".html"), page.html)
+    return "written"
+
+
+def _drop_outputs(corpus: Corpus, url: str) -> None:
+    """Borra Silver y Gold derivados de una pagina, dejando intacto el Bronze."""
+    processed = corpus.processed_file(url)
+    for path in (processed, processed.with_suffix(".html"), corpus.gold_file(url)):
+        path.unlink(missing_ok=True)
 
 
 def process(
@@ -146,13 +182,24 @@ def process(
     corpus: Corpus,
     *,
     on_step: Step | None = None,
-) -> list[CleanPage]:
-    """Bronze -> Silver: escribe JSON + HTML limpio en data/processed."""
-    pages: list[CleanPage] = []
-    for record in readable_records(corpus):
-        page = _process_one(profile, corpus, record)
-        if page is not None:
-            pages.append(page)
+) -> LayerResult:
+    """Bronze -> Silver: escribe JSON + HTML limpio en data/processed.
+
+    Solo reprocesa las paginas cuyo HTML crudo o cuyas reglas de extraccion
+    cambiaron, asi que correr el pipeline dos veces seguidas es casi gratis.
+    """
+    records = readable_records(corpus)
+    written = 0
+    skipped = 0
+    removed = 0
+    for record in records:
+        outcome = _process_one(profile, corpus, record)
+        if outcome == "written":
+            written += 1
+        elif outcome == "removed":
+            removed += 1
+        else:
+            skipped += 1
         if on_step is not None:
             on_step(short_path(record.url))
-    return pages
+    return LayerResult(written=written, skipped=skipped, total=len(records), removed=removed)

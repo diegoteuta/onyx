@@ -106,3 +106,35 @@ def test_discover_respeta_el_limite() -> None:
 
     # Assert
     assert len(urls) == 1
+
+
+def test_discover_no_descarga_sitemaps_excluidos() -> None:
+    # Arrange
+    fetched: list[str] = []
+    pages = {
+        "https://example.test/sitemap_index.xml": (FIXTURES / "sitemap_index.xml").read_text(
+            encoding="utf-8"
+        ),
+        "https://example.test/page-sitemap.xml": (FIXTURES / "sitemap_urls.xml").read_text(
+            encoding="utf-8"
+        ),
+        "https://example.test/post-sitemap.xml": "<urlset></urlset>",
+    }
+
+    def fetch(url: str) -> str | None:
+        fetched.append(url)
+        return pages.get(url)
+
+    profile = SiteProfile(
+        name="example",
+        base_url="https://example.test",
+        sitemaps=("/sitemap_index.xml",),
+        sitemap_exclude=("post-sitemap",),
+    )
+
+    # Act
+    discover(profile, fetch)
+
+    # Assert
+    assert "https://example.test/page-sitemap.xml" in fetched
+    assert not any("post-sitemap" in url for url in fetched)

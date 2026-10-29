@@ -5,10 +5,14 @@ name = "hv"
 base_url = "https://www.hv.com.co"
 lang = "es"
 rate_limit_seconds = 1.5
-max_pages = 400
+max_pages = 500
 
 # WordPress + Yoast: el sitemap_index apunta a pages, posts, attachments, categories...
 sitemaps = ["/sitemap_index.xml"]
+
+# Sitemaps que no aportan contenido: attachments (1000 imagenes), categorias y tipos de proyecto.
+# Ojo: portfolio-sitemap SI se conserva, contiene las 40 paginas de /productos/.
+sitemap_exclude = ["attachment-sitemap", "category-sitemap", "project-type-sitemap"]
 
 # Sin include_patterns se ingestan todas las URLs del sitemap que sobrevivan a los excludes.
 exclude_patterns = [
@@ -27,8 +31,12 @@ exclude_patterns = [
 ]
 
 [extract]
-# El tema envuelve el contenido real en .ajax-content-wrap; el resto es UberMenu + footer.
-content_selectors = [".ajax-content-wrap", "main", "article"]
+# Ojo: este tema (Salient) usa IDs para sus bloques, no clases.
+# `#ajax-content-wrap` es el contenedor comun de noticias y fichas de producto.
+content_selectors = ["#ajax-content-wrap", "main", "article"]
+
+# Regla aprendida a golpes: un drop con la clase equivocada no falla, simplemente no
+# hace nada. Verificar siempre con `soup.select("#id")` vs `soup.select(".clase")`.
 drop_selectors = [
   "nav",
   "header",
@@ -39,11 +47,14 @@ drop_selectors = [
   "style",
   "noscript",
   "svg",
+  "#page-header-wrap",
+  "#footer-outer",
+  "#slide-out-widget-area",
+  "#slide-out-widget-area-bg",
   ".ubermenu",
   ".off-canvas-menu-container",
-  ".footer-outer",
   ".cookie-notice",
-  ".page-header-wrap",
+  "#cookie-notice",
   ".sidebar",
   ".share-buttons",
   ".related-posts",
