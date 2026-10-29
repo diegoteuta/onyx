@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from onyx.models import Document
 from onyx.util import utc_now
 
 CHARS_PER_TOKEN_FALLBACK = 4
+Step = Callable[[str], None]
 
 
 @lru_cache(maxsize=1)
@@ -80,35 +82,49 @@ def _load_processed(path: Path) -> dict[str, object] | None:
     return payload if isinstance(payload, dict) else None
 
 
-def build(profile: SiteProfile, corpus: Corpus) -> list[Document]:
+def _build_one(profile: SiteProfile, corpus: Corpus, processed: Path) -> Document | None:
+    """Enriquece un documento Silver a Gold. None si no hay nada que escribir."""
+    payload = _load_processed(processed)
+    if payload is None:
+        return None
+
+    url = str(payload.get("url", ""))
+    title = str(payload.get("title", "")) or url
+    cleaned_html = processed.with_suffix(".html")
+    if not url or not cleaned_html.is_file():
+        return None
+
+    body = html_to_markdown(cleaned_html.read_text(encoding="utf-8", errors="replace"))
+    if not body:
+        return None
+
+    document = Document(
+        url=url,
+        site=profile.name,
+        title=title,
+        section=section_of(url),
+        lang=profile.lang,
+        captured_at=str(payload.get("captured_at", utc_now())),
+        content_hash=str(payload.get("content_hash", "")),
+        tokens=count_tokens(body),
+        body=body,
+    )
+    write_text(corpus.gold_file(url), render_document(document))
+    return document
+
+
+def build(
+    profile: SiteProfile,
+    corpus: Corpus,
+    *,
+    on_step: Step | None = None,
+) -> list[Document]:
     """Silver -> Gold: escribe un .md por pagina en data/gold."""
     documents: list[Document] = []
     for processed in sorted(corpus.processed_dir.glob("*.json")):
-        payload = _load_processed(processed)
-        if payload is None:
-            continue
-
-        url = str(payload.get("url", ""))
-        title = str(payload.get("title", "")) or url
-        cleaned_html = processed.with_suffix(".html")
-        if not url or not cleaned_html.is_file():
-            continue
-
-        body = html_to_markdown(cleaned_html.read_text(encoding="utf-8", errors="replace"))
-        if not body:
-            continue
-
-        document = Document(
-            url=url,
-            site=profile.name,
-            title=title,
-            section=section_of(url),
-            lang=profile.lang,
-            captured_at=str(payload.get("captured_at", utc_now())),
-            content_hash=str(payload.get("content_hash", "")),
-            tokens=count_tokens(body),
-            body=body,
-        )
-        write_text(corpus.gold_file(url), render_document(document))
-        documents.append(document)
+        document = _build_one(profile, corpus, processed)
+        if document is not None:
+            documents.append(document)
+        if on_step is not None:
+            on_step(processed.stem)
     return documents

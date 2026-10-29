@@ -39,6 +39,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("--site", required=True)
     run.add_argument("--limit", type=int, default=None, help="tope de paginas en esta corrida")
     run.add_argument("--refresh", action="store_true", help="captura incremental con ETag/hash")
+    run.add_argument("--quiet", action="store_true", help="sin barra de progreso (util en CI)")
     run.add_argument(
         "--ignore-robots",
         action="store_true",
@@ -86,6 +87,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 limit=args.limit,
                 refresh=args.refresh,
                 ignore_robots=args.ignore_robots,
+                progress=not args.quiet,
             )
             print(
                 f"[{result.site}] descubiertas={result.discovered} guardadas={result.stored} "

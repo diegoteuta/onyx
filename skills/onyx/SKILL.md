@@ -60,6 +60,10 @@ Muestra qué URLs se ingerirían. Sirve para validar `include_patterns` /
 uv run onyx ingest --site <perfil>
 ```
 
+Muestra una barra de progreso por capa (`bronze`, `silver`, `gold`) en **stderr**; el
+resumen final sale por stdout. En CI o en scripts, agregar `--quiet` para silenciar la
+barra y quedarse solo con la línea parseable.
+
 Corre Bronze → Silver → Gold y reporta:
 
 ```text

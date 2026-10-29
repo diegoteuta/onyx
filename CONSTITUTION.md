@@ -214,10 +214,12 @@ Estas reglas son **duras**: no son recomendaciones.
 | 2026-10-28 | `tiktoken` (`cl100k_base`) para contar tokens, con fallback por caracteres | Métrica real de coste; el fallback permite operar offline |
 | 2026-10-28 | Imágenes descartadas en Gold | Aportan ruido y tokens; siguen disponibles en Bronze |
 | 2026-10-28 | Makefile portable (Python en vez de `grep`/`awk`/`rm`/`find`) | El template original fallaba en Windows (`make help` → error 255) |
+| 2026-10-29 | Progreso por página en **stderr**, con `--quiet` para desactivarlo | Una corrida de 400 páginas tardaba 10 min sin señal de avance; stdout queda limpio para CI |
 
 ## 10. Notas y tareas pendientes
 
 - [x] Implementar las tres capas y la CLI.
+- [x] Barra de progreso por capa (stderr) con `--quiet`.
 - [x] Perfil de sitio para `hv.com.co`.
 - [ ] Agregar pruebas de `bronze.capture` con `httpx.MockTransport` (sin red).
 - [ ] Publicar la skill en `skills.sh` y validar con `npx skills add`.

@@ -131,6 +131,10 @@ uv run onyx ingest --site hv --refresh
 uv run onyx report --site hv
 ```
 
+Cada capa dibuja su barra de progreso en **stderr** (`[hv:bronze] [####----] 84/400 (21%)`),
+así que podés redirigir la salida sin romper nada. Para CI o scripting, `--quiet` deja solo
+el resumen de stdout.
+
 Equivalente con `make`:
 
 ```bash

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup, Tag
@@ -12,9 +13,11 @@ from bs4 import BeautifulSoup, Tag
 from onyx.config import ExtractRules, SiteProfile
 from onyx.layout import Corpus, section_of, write_text
 from onyx.models import CaptureRecord
-from onyx.util import utc_now
+from onyx.util import short_path, utc_now
 
 MIN_CONTENT_CHARS = 200
+MIN_WORDS = 30
+Step = Callable[[str], None]
 SPACES = re.compile(r"[ \t\u00a0]+")
 BLANK_LINES = re.compile(r"\n{3,}")
 
@@ -111,32 +114,45 @@ def readable_records(corpus: Corpus) -> list[CaptureRecord]:
     ]
 
 
-def process(profile: SiteProfile, corpus: Corpus) -> list[CleanPage]:
+def _process_one(profile: SiteProfile, corpus: Corpus, record: CaptureRecord) -> CleanPage | None:
+    """Limpia una captura y escribe Silver. None si no hay contenido util."""
+    raw_file = corpus.raw_dir / record.raw_path
+    if not raw_file.is_file():
+        return None
+
+    page = clean_page(
+        raw_file.read_text(encoding="utf-8", errors="replace"), record.url, profile.extract
+    )
+    if page.word_count < MIN_WORDS:
+        return None
+
+    payload = {
+        "url": page.url,
+        "title": page.title,
+        "lang": profile.lang,
+        "section": section_of(record.url),
+        "captured_at": utc_now(),
+        "content_hash": page.content_hash,
+        "word_count": page.word_count,
+        "text": page.text,
+    }
+    write_text(corpus.processed_file(page.url), json.dumps(payload, ensure_ascii=False, indent=2))
+    write_text(corpus.processed_file(page.url).with_suffix(".html"), page.html)
+    return page
+
+
+def process(
+    profile: SiteProfile,
+    corpus: Corpus,
+    *,
+    on_step: Step | None = None,
+) -> list[CleanPage]:
     """Bronze -> Silver: escribe JSON + HTML limpio en data/processed."""
     pages: list[CleanPage] = []
     for record in readable_records(corpus):
-        raw_file = corpus.raw_dir / record.raw_path
-        if not raw_file.is_file():
-            continue
-        page = clean_page(
-            raw_file.read_text(encoding="utf-8", errors="replace"), record.url, profile.extract
-        )
-        if page.word_count < 30:
-            continue
-
-        payload = {
-            "url": page.url,
-            "title": page.title,
-            "lang": profile.lang,
-            "section": section_of(record.url),
-            "captured_at": utc_now(),
-            "content_hash": page.content_hash,
-            "word_count": page.word_count,
-            "text": page.text,
-        }
-        write_text(
-            corpus.processed_file(page.url), json.dumps(payload, ensure_ascii=False, indent=2)
-        )
-        write_text(corpus.processed_file(page.url).with_suffix(".html"), page.html)
-        pages.append(page)
+        page = _process_one(profile, corpus, record)
+        if page is not None:
+            pages.append(page)
+        if on_step is not None:
+            on_step(short_path(record.url))
     return pages
