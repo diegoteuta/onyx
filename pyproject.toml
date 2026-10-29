@@ -34,7 +34,7 @@ Repository = "https://github.com/diegoteuta/onyx"
 Issues = "https://github.com/diegoteuta/onyx/issues"
 
 [build-system]
-requires = ["uv_build>=0.13.0,<0.15.0"]
+requires = ["uv_build>=0.13.5,<0.15.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
