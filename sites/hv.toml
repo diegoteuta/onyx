@@ -1,0 +1,50 @@
+# Perfil del sitio de Harinera del Valle.
+# Todo lo especifico de este dominio vive aca: nada de esto esta hardcodeado en el codigo.
+
+name = "hv"
+base_url = "https://www.hv.com.co"
+lang = "es"
+rate_limit_seconds = 1.5
+max_pages = 400
+
+# WordPress + Yoast: el sitemap_index apunta a pages, posts, attachments, categories...
+sitemaps = ["/sitemap_index.xml"]
+
+# Sin include_patterns se ingestan todas las URLs del sitemap que sobrevivan a los excludes.
+exclude_patterns = [
+  "/wp-content/",
+  "/wp-json/",
+  "/wp-includes/",
+  "/wp-admin/",
+  "/feed/",
+  "/tag/",
+  "/category/",
+  "/project-type/",
+  "/portfolio-type/",
+  "/attachment/",
+  "/author/",
+  "/xmlrpc.php",
+]
+
+[extract]
+# El tema envuelve el contenido real en .ajax-content-wrap; el resto es UberMenu + footer.
+content_selectors = [".ajax-content-wrap", "main", "article"]
+drop_selectors = [
+  "nav",
+  "header",
+  "footer",
+  "aside",
+  "form",
+  "script",
+  "style",
+  "noscript",
+  "svg",
+  ".ubermenu",
+  ".off-canvas-menu-container",
+  ".footer-outer",
+  ".cookie-notice",
+  ".page-header-wrap",
+  ".sidebar",
+  ".share-buttons",
+  ".related-posts",
+]

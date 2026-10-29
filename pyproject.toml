@@ -1,0 +1,64 @@
+[project]
+name = "onyx"
+version = "0.1.0"
+description = "Turn any company website into an auditable RAG corpus through a Bronze/Silver/Gold pipeline."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.13"
+keywords = ["rag", "corpus", "web-scraping", "markdown", "medallion"]
+authors = [
+    { name = "diegoteuta", email = "diegofernandoteuta@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "httpx>=0.28.1",
+    "lxml>=6.1.3",
+    "markdownify>=1.2.3",
+    "pyyaml>=6.0.3",
+    "tiktoken>=0.14.0",
+]
+
+[project.scripts]
+onyx = "onyx.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/diegoteuta/onyx"
+Repository = "https://github.com/diegoteuta/onyx"
+Issues = "https://github.com/diegoteuta/onyx/issues"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.15.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=3.7",
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "ty>=0.0.1",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "C4"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["onyx"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
