@@ -1,6 +1,6 @@
 ---
 name: onyx
-description: "Convierte el sitio web publico de cualquier empresa en un corpus Markdown auditable y listo para RAG, con arquitectura Medallion en disco (Bronze = HTML crudo, Silver = texto limpio, Gold = Markdown con frontmatter YAML). Descubre URLs por sitemap con crawl acotado de respaldo, respeta robots.txt y Crawl-delay, registra procedencia (url, fecha, estado, sha256, etag) en un JSONL append-only y refresca de forma incremental sin reescribir lo que no cambio. Usala cuando haya que crear un corpus propio de una empresa, ingerir o raspar su sitio, convertir HTML en Markdown para embeddings o chunking, limpiar boilerplate (menus, cookies, footer, scripts), medir tokens de un corpus, refrescar contenido sin volver a descargar todo, o preparar insumos para un RAG. Use when turning a company website into a RAG corpus, scraping a site politely, building a Bronze/Silver/Gold pipeline, converting HTML to Markdown with YAML frontmatter, cleaning boilerplate, or refreshing a corpus incrementally."
+description: "Convierte el sitio web publico de cualquier empresa en un corpus Markdown auditable y listo para RAG, con arquitectura Medallon en disco (Bronze = HTML crudo, Silver = texto limpio, Gold = Markdown con frontmatter YAML). Descubre URLs por sitemap con crawl acotado de respaldo, respeta robots.txt y Crawl-delay, registra procedencia (url, fecha, estado, sha256, etag) en un JSONL append-only y refresca de forma incremental sin reescribir lo que no cambio. Usala cuando haya que crear un corpus propio de una empresa, ingerir o raspar su sitio, convertir HTML en Markdown para embeddings o chunking, limpiar boilerplate (menus, cookies, footer, scripts), medir tokens de un corpus, refrescar contenido sin volver a descargar todo, o preparar insumos para un RAG. Use when turning a company website into a RAG corpus, scraping a site politely, building a Bronze/Silver/Gold pipeline, converting HTML to Markdown with YAML frontmatter, cleaning boilerplate, or refreshing a corpus incrementally."
 license: MIT
 compatibility: Requiere Python 3.13+ y uv. Sin navegador headless; no ejecuta JavaScript.
 metadata:
@@ -9,7 +9,7 @@ metadata:
   homepage: https://github.com/diegoteuta/onyx
 ---
 
-# Onyx — de un sitio web a un corpus auditable
+# Onyx
 
 Onyx separa **captura** (frágil, lenta, depende del sitio) de **procesamiento**
 (determinista, repetible). Tres capas en disco, cada una reconstruible desde la anterior.
@@ -22,7 +22,7 @@ Onyx separa **captura** (frágil, lenta, depende del sitio) de **procesamiento**
 
 ## Cuándo usar esta skill
 
-- Hay que construir un corpus propio de una empresa y no existe API ni dataset.
+- Hay que construir un corpus propio de una empresa.
 - Hay que convertir HTML en Markdown limpio para chunking y embeddings.
 - Hay que refrescar un corpus sin volver a descargar todo el sitio.
 - Hay que auditar de dónde salió cada fragmento (procedencia y atribución).
